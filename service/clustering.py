@@ -14,6 +14,9 @@ from sklearn.preprocessing import StandardScaler
 tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
 
+#---------------------------------
+# Compute Clustering
+
 class ClusteringService:
 
     def __init__(self, cluster_size: int):
@@ -42,11 +45,11 @@ class ClusteringService:
                 data.stat.max
             ]])
             
-            print("=============================", features)
+            logger.debug("features: %s", features)
 
             features_scaled = self.scaler.transform(features)
 
-            print(features_scaled)
+            logger.debug("features_scaled: %s", features_scaled)
 
             cluster = int(self.kmeans.predict(features_scaled)[0])
 
@@ -56,11 +59,9 @@ class ClusteringService:
             
             data_cluster = Tenant(
                 id=data.id,
-                tps=data.tps,
-                timestamp=data.timestamp,
                 message="clustering data successfully",
-                #stat = data.stat,
-                #cluster = data_cluster
+                stat = data.stat,
+                cluster = data_cluster
             )
 
             return data_cluster

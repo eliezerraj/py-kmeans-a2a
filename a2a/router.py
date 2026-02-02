@@ -29,12 +29,13 @@ class A2ARouter:
                     message = f"Unsupported message type: {envelope.message_type}"
                     e = A2ARouterError(message)
                     raise e
-                
-            except Exception as e:
+
+            except A2ARouterError as e:
                 span.record_exception(e)
                 span.set_status(Status(StatusCode.ERROR, str(e)))
                 logger.error("Error clustering data", exc_info=e)
                 raise e
 
-
-
+            except Exception as e:
+                logger.error("Error clustering data", exc_info=e)
+                raise e

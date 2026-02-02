@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 # -----------------------------------------
 class ClusteringAgent:
 
-    NAME = settings.POD_NAME
-    VERSION = settings.API_VERSION
+    NAME = settings.APP_NAME
+    VERSION = settings.VERSION
 
     def __init__(self):
         self.router = A2ARouter()
@@ -26,7 +26,6 @@ class ClusteringAgent:
     def receive(self, envelope: A2AEnvelope) -> A2AEnvelope:
         with tracer.start_as_current_span("agent.receive") as span:
             logger.info("def.receive()") 
-
             logger.debug("envelope: %s", envelope)
 
             try:

@@ -3,8 +3,6 @@ from typing import Optional
 
 class Tenant(BaseModel):
     id: str
-    tps: int
-    timestamp: Optional[str] = None
     message: Optional[str] = None
     stat: Optional['Stat'] = None
     cluster: Optional['Cluster'] = None
