@@ -3,7 +3,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.trace import StatusCode, Status 
 
 from a2a import envelope
-from handlers.ingest import handler_cluster_data, handler_fit
+from handlers.agent import handler_cluster_data, handler_fit
 from exception.exceptions import A2ARouterError
 
 #---------------------------------

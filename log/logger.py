@@ -5,7 +5,7 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 
-REQUEST_ID_CTX = ContextVar("request_id", default="unknown")
+REQUEST_ID_CTX = ContextVar("request_id", default="-")
 
 class JsonFormatter(logging.Formatter):
     def __init__(self, component: str, max_msg_length: int = None):
@@ -21,10 +21,10 @@ class JsonFormatter(logging.Formatter):
 
         log_entry = {
             "level": record.levelname.lower(),
+            "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "component": record.name,
             "request-id":  REQUEST_ID_CTX.get(),
             "message": message,
-            "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
 
         return json.dumps(log_entry)

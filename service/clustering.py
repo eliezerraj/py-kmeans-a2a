@@ -23,12 +23,14 @@ class ClusteringService:
         self.scaler = StandardScaler()
         self.kmeans = KMeans(
             n_clusters=cluster_size,
-            random_state=42,
-            n_init="auto"
+            random_state=0,
+            max_iter=300,
+            init='k-means++',
+            n_init=10
         )
         self.is_fitted = False
 
-    def cluster_data(self, data: Tenant) -> Tenant:
+    def cluster_data(self, data) -> Tenant:
         with tracer.start_as_current_span("service.cluster_data"):
             logger.info("func.cluster_data()")
 
@@ -40,9 +42,9 @@ class ClusteringService:
             data_cluster = Cluster()
 
             features = np.array([[
-                data.stat.mean,
-                data.stat.std,
-                data.stat.max
+                data.data.mean,
+                data.data.mad,
+                data.data.n_slope
             ]])
             
             logger.debug("features: %s", features)
@@ -51,16 +53,16 @@ class ClusteringService:
 
             logger.debug("features_scaled: %s", features_scaled)
 
-            cluster = int(self.kmeans.predict(features_scaled)[0])
+            result_kmeans = int(self.kmeans.predict(features_scaled)[0])
 
-            data_cluster.id = str(cluster)
+            data_cluster.id = str(result_kmeans)
             data_cluster.model = "kmeans"
-            data_cluster.centroid = float(self.kmeans.cluster_centers_[cluster][0])
+            data_cluster.centroid = float(self.kmeans.cluster_centers_[result_kmeans][0])
             
             data_cluster = Tenant(
                 id=data.id,
                 message="clustering data successfully",
-                stat = data.stat,
+                data = data.data,
                 cluster = data_cluster
             )
 
@@ -73,11 +75,20 @@ class ClusteringService:
             logger.debug("historical_stats: %s", historical_stats)
 
             X = np.array([
-                [s["mean"], s["std"], s["max"]]
+                [s["mean"], s["mad"], s["n_slope"]]
                 for s in historical_stats
             ])
 
             X_scaled = self.scaler.fit_transform(X)
-            self.kmeans.fit(X_scaled)
+            knn = self.kmeans.fit(X_scaled)
+            y_means = knn.fit_predict(X_scaled)
+
+            # Attach predicted cluster labels back into historical_stats
+            for idx, label in enumerate(y_means):
+                historical_stats[idx]["cluster"] = int(label)
+
+            logger.debug("historical_stats_with_clusters: %s", historical_stats)
 
             self.is_fitted = True
+
+            return historical_stats

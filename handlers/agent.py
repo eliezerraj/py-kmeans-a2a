@@ -38,9 +38,10 @@ def handler_fit(payload: dict) -> dict:
         logger.debug("payload: %s", payload)
 
         try:
-            cluster_service.fit(historical_stats=payload)
+            result = cluster_service.fit(historical_stats=payload)
             return {
                 "message": "clustering fitted successfully",
+                "data": result
             }
 
         except Exception as e:

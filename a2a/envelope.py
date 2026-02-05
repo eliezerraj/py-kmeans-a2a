@@ -1,10 +1,9 @@
 import logging
 from opentelemetry import trace
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 from typing import Any
 
@@ -15,11 +14,11 @@ tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
 
 class A2AEnvelope(BaseModel):
-    message_id: str
+    message_id: str = Field(default_factory=lambda: str(uuid4()))
     source_agent: str
     target_agent: str
     message_type: str
-    timestamp: str
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     payload: Any
 
     @staticmethod
@@ -28,10 +27,8 @@ class A2AEnvelope(BaseModel):
             logger.info("def.create()") 
 
             return A2AEnvelope(
-                message_id=str(uuid4()),
                 source_agent=source,
                 target_agent=target,
                 message_type=msg_type,
-                timestamp=datetime.utcnow().isoformat(),
                 payload=payload,
             )
