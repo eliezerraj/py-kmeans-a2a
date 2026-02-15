@@ -2,7 +2,7 @@ import logging
 from opentelemetry import trace
 
 from exception.exceptions import KmeansError
-from model.entities import Tenant, Cluster
+from model.entities import Response, Cluster
 
 import numpy as np
 from sklearn.cluster import KMeans
@@ -30,7 +30,7 @@ class ClusteringService:
         )
         self.is_fitted = False
 
-    def cluster_data(self, data) -> Tenant:
+    def cluster_data(self, data) -> Response:
         with tracer.start_as_current_span("service.cluster_data"):
             logger.info("func.cluster_data()")
 
@@ -42,9 +42,9 @@ class ClusteringService:
             data_cluster = Cluster()
 
             features = np.array([[
-                data.data.mean,
-                data.data.mad,
-                data.data.n_slope
+                data.data.feature_01,
+                data.data.feature_02,
+                data.data.feature_03
             ]])
             
             logger.debug("features: %s", features)
@@ -59,7 +59,7 @@ class ClusteringService:
             data_cluster.model = "kmeans"
             data_cluster.centroid = float(self.kmeans.cluster_centers_[result_kmeans][0])
             
-            data_cluster = Tenant(
+            data_cluster = Response(
                 id=data.id,
                 message="clustering data successfully",
                 data = data.data,
@@ -75,7 +75,7 @@ class ClusteringService:
             logger.debug("historical_stats: %s", historical_stats)
 
             X = np.array([
-                [s["mean"], s["mad"], s["n_slope"]]
+                [s["feature_01"], s["feature_02"], s["feature_03"]]
                 for s in historical_stats
             ])
 

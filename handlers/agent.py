@@ -1,5 +1,5 @@
 import logging
-from model.entities import Tenant
+from model.entities import Response
 from opentelemetry import trace
 from opentelemetry.sdk.trace import StatusCode, Status 
 
@@ -22,8 +22,8 @@ def handler_cluster_data(payload: dict) -> dict:
         logger.debug("payload: %s", payload)
 
         try:
-            tenant = Tenant.parse_obj(payload)
-            result = cluster_service.cluster_data(data=tenant)
+            response = Response.parse_obj(payload)
+            result = cluster_service.cluster_data(data=response)
             return result
 
         except Exception as e:

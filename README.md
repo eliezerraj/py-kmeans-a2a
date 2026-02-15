@@ -85,7 +85,7 @@ Feature	Meaning in TPS
 
     export VERSION=0.1
     export ACCOUNT=aws:999999999
-    export APP_NAME=ky-kmeans-a2a.localhost
+    export APP_NAME=py-kmeans-a2a.localhost
     export HOST=127.0.0.1 
     export URL_AGENT=http://127.0.0.1:8001 
     export PORT=8001
@@ -93,13 +93,27 @@ Feature	Meaning in TPS
     export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
     export LOG_LEVEL=DEBUG 
     export OTEL_STDOUT_LOG_GROUP=True
-    export LOG_GROUP=/mnt/c/Eliezer/log/ky-kmeans-a2a.log
+    export LOG_GROUP=/mnt/c/Eliezer/log/py-kmeans-a2a.log
 
 ## Endpoint    
 
-    curl --location 'http://localhost:8000/.well-known/agent.json'
+    curl --location 'http://localhost:8001/.well-known/agent.json'
 
-    curl --location 'http://localhost:8000/.well-known/agent.json'
+    curl --location 'http://localhost:8001/agent_card_register'
+
+    curl --location 'http://localhost:8001/a2a/message' \
+        --header 'Content-Type: application/json' \
+        --data '{
+        "source_agent": "producer-agent",
+        "target_agent": "cluster-agent",
+        "message_type": "CLUSTER_FIT",
+            "payload": [
+                {"feature_01": 13, "feature_02": 9, "feature_03": 36},
+                {"feature_01": 9, "feature_02": 7, "feature_03": 32},
+                {"feature_01": 9, "feature_02": 7, "feature_03": 32}
+            ]
+        }
+    '
 
     curl --location 'http://localhost:8001/a2a/message' \
         --header 'Content-Type: application/json' \
@@ -110,32 +124,11 @@ Feature	Meaning in TPS
         "message_type":"CLUSTER_DATA",
         "timestamp":"2026-01-29T21:01:00Z",
         "payload":{
-            "id":"id-002",
-            "stat":{
-                "mean":11,
-                "std":8,
-                "max":38
+            "id":"id-3",
+            "data":{
+                "feature_01":11,
+                "feature_02":8,
+                "feature_03":38
             }
         }
-    }'
-
-    curl --location 'http://localhost:8001/a2a/message' \
-        --header 'Content-Type: application/json' \
-        --data '{
-        "message_id": "123",
-        "source_agent": "producer-agent",
-        "target_agent": "cluster-agent",
-        "message_type": "CLUSTER_FIT",
-        "payload": [
-            {"mean": 13, "std": 9, "max": 36},
-            {"mean": 9, "std": 7, "max": 32},
-            {"mean": 14, "std": 10, "max": 50},
-            {"mean": 21, "std": 10, "max": 48},
-            {"mean": 18, "std": 9, "max": 45},
-            {"mean": 25, "std": 10, "max": 50},
-            {"mean": 31, "std": 9, "max": 50},
-            {"mean": 30, "std": 11, "max": 50},
-            {"mean": 35, "std": 9, "max": 50}              
-        ],
-        "timestamp": "2026-01-29T21:01:00Z"
     }'
