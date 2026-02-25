@@ -19,17 +19,20 @@ logger = logging.getLogger(__name__)
 
 class ClusteringService:
 
+    # Initialize KMeans model with specified cluster size
     def __init__(self, cluster_size: int):
         self.scaler = StandardScaler()
         self.kmeans = KMeans(
             n_clusters=cluster_size,
             random_state=0,
-            max_iter=300,
+            max_iter=600,
             init='k-means++',
             n_init=10
         )
         self.is_fitted = False
+        self.historical_stats = None
 
+            # Cluster incoming data and return cluster assignment
     def cluster_data(self, data) -> Response:
         with tracer.start_as_current_span("service.cluster_data"):
             logger.info("func.cluster_data()")
@@ -63,11 +66,13 @@ class ClusteringService:
                 id=data.id,
                 message="clustering data successfully",
                 data = data.data,
-                cluster = data_cluster
+                cluster = data_cluster,
+                members = self.get_members()
             )
 
             return data_cluster
 
+    # Fit KMeans model with historical stats
     def fit(self, historical_stats: list[dict]):
         with tracer.start_as_current_span("use_case.kmeans_clustering"):
             logger.info("func.fit()") 
@@ -90,5 +95,24 @@ class ClusteringService:
             logger.debug("historical_stats_with_clusters: %s", historical_stats)
 
             self.is_fitted = True
+            self.historical_stats = historical_stats
 
             return historical_stats
+
+    # Return all members of each cluster
+    def get_members(self) -> dict:
+        with tracer.start_as_current_span("service.get_members"):
+            logger.info("func.get_members()")
+
+            if not self.is_fitted:
+                raise KmeansError("KMeans agent is not fitted")
+
+            clusters = {}
+            for item in self.historical_stats:
+                cluster_id = item.get("cluster")
+                if cluster_id is not None:
+                    if cluster_id not in clusters:
+                        clusters[cluster_id] = []
+                    clusters[cluster_id].append(item)
+            
+            return clusters

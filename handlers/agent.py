@@ -12,7 +12,7 @@ tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
 
 # Initialize Clustering Service
-CLUSTER_SIZE = 3
+CLUSTER_SIZE = 4
 cluster_service = ClusteringService(cluster_size=CLUSTER_SIZE)
 
 # Handlers
