@@ -1,13 +1,14 @@
 import logging
-from opentelemetry import trace
-from opentelemetry.sdk.trace import StatusCode, Status 
 
-from config.config import settings
-from exception.exceptions import A2ARouterError
+from infrastructure.config.config import settings
+from shared.exception.exceptions import A2ARequestError
 
 from a2a.router import A2ARouter
 from a2a.envelope import A2AEnvelope
 from a2a.agent_card import AGENT_CARD
+
+from opentelemetry import trace
+from opentelemetry.sdk.trace import StatusCode, Status 
 
 #---------------------------------
 # Configure logging
@@ -49,8 +50,8 @@ class ClusteringAgent:
                     payload=result
                 )
             
-            except A2ARouterError:
-                # Propagate known router errors so controller can return 400
+            except A2ARequestError:
+                # Propagate known request errors so controller can return 400
                 raise
             except Exception as e:
                 span.record_exception(e)
