@@ -1,5 +1,5 @@
 
-from config.config import settings
+from infrastructure.config.config import settings
 
 AGENT_CARD = {
     "name": settings.APP_NAME,

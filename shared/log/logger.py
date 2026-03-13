@@ -22,8 +22,8 @@ class JsonFormatter(logging.Formatter):
         log_entry = {
             "level": record.levelname.lower(),
             "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "component": record.name,
             "request-id":  REQUEST_ID_CTX.get(),
+            "component": record.name,
             "message": message,
         }
 
