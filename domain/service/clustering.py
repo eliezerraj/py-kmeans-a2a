@@ -1,6 +1,9 @@
 import logging
 import threading
+from pathlib import Path
 import numpy as np
+import joblib
+
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 
@@ -8,12 +11,14 @@ from shared.exception.exceptions import KmeansError, KmeansNotFittedError
 from domain.model.entities import Response, Cluster
 
 from opentelemetry import trace
+from opentelemetry.sdk.trace import StatusCode, Status 
 
 #---------------------------------
 # Configure logging
 #---------------------------------
 tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
+ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets"
 
 #---------------------------------
 # Compute Clustering
@@ -34,7 +39,7 @@ class ClusteringService:
         self.is_fitted = False
         self.historical_stats = None
 
-            # Cluster incoming data and return cluster assignment
+    # Cluster incoming data and return cluster assignment.
     def cluster_data(self, data) -> Response:
         with tracer.start_as_current_span("service.cluster_data"):
             logger.info("func.cluster_data()")
@@ -60,7 +65,7 @@ class ClusteringService:
                     id=str(result_kmeans),
                     model="kmeans",
                     centroid=self.kmeans.cluster_centers_[result_kmeans].tolist(),
-                    members=self.get_members(),
+                    #members=self.get_members(),
                 )
 
                 return Response(
@@ -93,6 +98,13 @@ class ClusteringService:
                 self.is_fitted = True
                 self.historical_stats = historical_stats
 
+                self.save_cluster_assets(
+                    model=self.kmeans,
+                    scaler=self.scaler,
+                    label_map=self.get_members(),
+                    features_used=feature_keys,
+                )
+                
                 return historical_stats
 
     # Return all members of each cluster
@@ -112,3 +124,71 @@ class ClusteringService:
                     clusters[cluster_id].append(item)
             
             return clusters
+
+    # Save model and label map to disk for later use
+    @staticmethod
+    def save_cluster_assets(model, scaler, label_map, version="v1", features_used=None):
+        with tracer.start_as_current_span("service.save_cluster_assets") as span:
+            logger.info("func.save_cluster_assets()")
+            
+            assets = {
+                "model": model,
+                "scaler": scaler,
+                "label_map": label_map,
+                "features_used": features_used or ["feature_01", "feature_02", "feature_03"],
+            }
+
+            try:
+                ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+                output_path = ASSETS_DIR / f"cluster_agent_{version}.joblib"
+                joblib.dump(assets, output_path)
+                logger.info("cluster assets saved to %s", output_path)
+            except Exception as exc:
+                span.record_exception(exc)
+                span.set_status(Status(StatusCode.ERROR, str(exc)))
+
+                raise KmeansError(f"Failed to persist cluster assets: {exc}") from exc
+
+    # Load model and label map from disk
+    def load_cluster_assets(self, version="v1"):
+        with tracer.start_as_current_span("service.load_cluster_assets") as span:
+            logger.info("func.load_cluster_assets()")
+
+            try:
+                assets_path = ASSETS_DIR / f"cluster_agent_{version}.joblib"
+                assets = joblib.load(assets_path)
+
+                self.kmeans = assets["model"]
+                label_map = assets.get("label_map", {})
+                features_used = assets.get(
+                    "features_used",
+                    ["feature_01", "feature_02", "feature_03"],
+                )
+                self.historical_stats = [item for members in label_map.values() for item in members]
+
+                # Backward compatibility: older assets may not include scaler.
+                scaler = assets.get("scaler")
+                if scaler is None:
+                    if self.historical_stats and all(
+                        feature in self.historical_stats[0] for feature in features_used
+                    ):
+                        X = np.array([[s[feature] for feature in features_used] for s in self.historical_stats])
+                        scaler = StandardScaler().fit(X)
+                        logger.warning(
+                            "Loaded legacy cluster assets without scaler; rebuilt scaler from historical stats."
+                        )
+                    else:
+                        raise KmeansError(
+                            "Cluster assets are missing scaler metadata and cannot be reconstructed. "
+                            "Run CLUSTER_FIT to regenerate assets."
+                        )
+
+                self.scaler = scaler
+                self.is_fitted = True
+
+                return self.kmeans, label_map, features_used
+            
+            except FileNotFoundError as exc:
+                span.record_exception(exc)
+                span.set_status(Status(StatusCode.ERROR, str(exc)))
+                raise KmeansError(f"Cluster assets for version '{version}' not found.") from exc
