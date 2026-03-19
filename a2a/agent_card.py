@@ -3,54 +3,50 @@ from infrastructure.config.config import settings
 
 AGENT_CARD = {
     "name": settings.APP_NAME,
-    "version": settings.VERSION,
-    "url": settings.URL_AGENT,
-    "protocol": "a2a/1.0",
     "description": "Performs K-Means clustering on multi-dimensional features.",
-    "maintainer": {
-        "contact": "eliezerral@gmail.com",
-        "organization": "MLOps"
+    "version": settings.VERSION,
+    "provider": {
+        "organization": "MLOps",
+        "url": settings.URL_AGENT,
     },
-    "capabilities": [
+    "documentationUrl": f"{settings.URL_AGENT}/info",
+    "supportedInterfaces": [
         {
-            "intent": "DATA_CLASSIFICATION",
-            "consumes": ["CLUSTER_FIT", "CLUSTER_DATA"],
-            "produces": ["CLUSTER_FIT_RESULT","CLUSTER_DATA_RESULT"],
-            "input_modes": ["application/json"],
-            "output_modes": ["application/json"],            
-            "schema": {
-                "CLUSTER_DATA":{
-                    "type": "object",
-                    "required": ["id", "data"],
-                    "properties": {
-                        "id": { "type": "string" },
-                        "data": { 
-                            "type": "object", 
-                            "additionalProperties": { "type": "number" } 
-                        }
-                    },
-                },
-                "CLUSTER_FIT": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": { "type": "number" }
-                    },
-                    "minItems": 3
-                },
-            },        
-        },
+            "url": f"{settings.URL_AGENT}/a2a/message",
+            "protocolBinding": "HTTP+JSON",
+            "protocolVersion": "1.0",
+        }
     ],
-    "skills": {
-        "compute_cluster": "Compute which cluster the data from a given features",
-        "fit_cluster": "Training the model using from the given features",
+    "capabilities": {
+        "streaming": False,
+        "pushNotifications": False,
+        "stateTransitionHistory": False,
+        "extendedAgentCard": False,
     },
-    "endpoints": {
-        "message": "/a2a/message",
-        "health": "/info",
-    },
-    "security": {
-        "type": "none", 
-        "description": "Localhost testing mode"
-    }    
+    "defaultInputModes": ["application/json"],
+    "defaultOutputModes": ["application/json"],
+    "skills": [
+        {
+            "id": "CLUSTER_FIT",
+            "name": "Cluster Fit",
+            "description": "Trains the K-Means model using a list of numeric feature objects.",
+            "tags": ["clustering", "training", "kmeans"],
+            "examples": [
+                '[{"feature_a": 1.2, "feature_b": 3.4}, {"feature_a": 1.5, "feature_b": 3.1}, {"feature_a": 8.2, "feature_b": 9.4}]'
+            ],
+            "inputModes": ["application/json"],
+            "outputModes": ["application/json"],
+        },
+        {
+            "id": "CLUSTER_DATA",
+            "name": "Cluster Data",
+            "description": "Assigns a feature object to a cluster using the trained K-Means model.",
+            "tags": ["clustering", "classification", "kmeans"],
+            "examples": [
+                '{"id": "sample-1", "data": {"feature_a": 2.1, "feature_b": 3.7}}'
+            ],
+            "inputModes": ["application/json"],
+            "outputModes": ["application/json"],
+        }
+    ]
 }
