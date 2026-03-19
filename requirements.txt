@@ -12,3 +12,4 @@ google-adk[a2a]
 fastapi
 uvicorn
 gunicorn
+joblib

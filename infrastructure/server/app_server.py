@@ -63,6 +63,8 @@ class MiddlewareHeaderContext(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """ Load the ML model """
+
+    
     logger.info(" **** Starting up the application...")
     yield
     logger.info(" **** Shutting down the application...")
@@ -104,7 +106,7 @@ def get_info():
 
         return settings
 
-@app.get("/.well-known/agent.json")
+@app.get("/.well-known/agent-card.json")
 def agent_card():
     with tracer.start_as_current_span("controller.get_agent_card"):
         """Get application agent card information."""

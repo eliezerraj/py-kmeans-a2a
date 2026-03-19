@@ -4,7 +4,7 @@ from pydantic import ValidationError
 
 from domain.model.entities import Response, FitRequest
 from domain.service.clustering import ClusteringService
-from shared.exception.exceptions import A2ARequestError
+from shared.exception.exceptions import A2ARequestError, KmeansError
 
 from opentelemetry import trace
 from opentelemetry.sdk.trace import StatusCode, Status 
@@ -18,6 +18,10 @@ logger = logging.getLogger(__name__)
 # Initialize Clustering Service
 CLUSTER_SIZE = 4
 cluster_service = ClusteringService(cluster_size=CLUSTER_SIZE)
+try:
+    cluster_service.load_cluster_assets("v1")
+except KmeansError as exc:
+    logger.warning("Cluster assets unavailable at startup: %s", exc)
 
 # Handlers
 def handler_cluster_data(payload: dict) -> dict:
