@@ -31,7 +31,6 @@ class ClusteringAgent:
         with tracer.start_as_current_span("agent.receive") as span:
             """Main entry point for all incoming messages."""
             logger.info("def.receive()") 
-            logger.debug("envelope: %s", envelope)
 
             try:
                 result = self.router.route(envelope)
@@ -56,5 +55,5 @@ class ClusteringAgent:
             except Exception as e:
                 span.record_exception(e)
                 span.set_status(Status(StatusCode.ERROR, str(e)))
-                logger.error(f"Error processing envelope: {e}")
+                logger.error(f"Error processing envelope: {e}", exc_info=e)
                 raise e

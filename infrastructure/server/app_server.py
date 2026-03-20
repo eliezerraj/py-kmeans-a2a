@@ -63,8 +63,6 @@ class MiddlewareHeaderContext(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """ Load the ML model """
-
-    
     logger.info(" **** Starting up the application...")
     yield
     logger.info(" **** Shutting down the application...")

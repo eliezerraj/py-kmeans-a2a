@@ -3,11 +3,13 @@ import logging
 from pydantic import ValidationError
 
 from domain.model.entities import Response, FitRequest
-from domain.service.clustering import ClusteringService
+from domain.service.cluster_service import ClusterService
 from shared.exception.exceptions import A2ARequestError, KmeansError
 
 from opentelemetry import trace
 from opentelemetry.sdk.trace import StatusCode, Status 
+
+from infrastructure.config.config import settings
 
 #---------------------------------
 # Configure logging
@@ -16,9 +18,11 @@ tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
 
 # Initialize Clustering Service
-CLUSTER_SIZE = 4
-cluster_service = ClusteringService(cluster_size=CLUSTER_SIZE)
+CLUSTER_SIZE = settings.CLUSTER_SIZE
+cluster_service = ClusterService(cluster_size=CLUSTER_SIZE)
+
 try:
+    logger.info("loading cluster assets at startup...") 
     cluster_service.load_cluster_assets("v1")
 except KmeansError as exc:
     logger.warning("Cluster assets unavailable at startup: %s", exc)
@@ -27,17 +31,21 @@ except KmeansError as exc:
 def handler_cluster_data(payload: dict) -> dict:
     with tracer.start_as_current_span("handler.cluster_data") as span:
         logger.info("def.handler_cluster_data()")  
-        logger.debug("payload: %s", payload)
 
         try:
             try:
-                response = Response.model_validate(payload)
+                response = FitRequest.model_validate(payload)
             except (ValidationError, TypeError, ValueError) as exc:
                 raise A2ARequestError(
                     "CLUSTER_DATA payload must be an object with 'id' and 'data' fields."
                 ) from exc
+                
             result = cluster_service.cluster_data(data=response)
-            return result
+
+            return {
+                "message": "clustering data successfully",
+                "cluster": result,
+            }
 
         except A2ARequestError:
             raise
@@ -50,7 +58,6 @@ def handler_cluster_data(payload: dict) -> dict:
 def handler_fit(payload: dict) -> dict:
     with tracer.start_as_current_span("handler.fit") as span:
         logger.info("def.handler_fit()")  
-        logger.debug("payload: %s", payload)
 
         try:
             if not isinstance(payload, list):
@@ -62,6 +69,7 @@ def handler_fit(payload: dict) -> dict:
                     "CLUSTER_FIT items must contain numeric feature_01, feature_02, feature_03 fields."
                 ) from exc
             result = cluster_service.fit(historical_stats=[item.model_dump() for item in items])
+            
             return {
                 "message": "clustering fitted successfully",
                 "data": result
