@@ -21,9 +21,7 @@ logger = logging.getLogger(__name__)
 ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets"
 
 #---------------------------------
-# Compute Clustering
-
-class ClusteringService:
+class ClusterService:
 
     # Initialize KMeans model with specified cluster size
     def __init__(self, cluster_size: int):
@@ -43,17 +41,18 @@ class ClusteringService:
     def cluster_data(self, data) -> Response:
         with tracer.start_as_current_span("service.cluster_data"):
             logger.info("func.cluster_data()")
-
-            logger.debug("data: %s", data)
-
+            
+            print("------------------")
+            print(data)
+            print("------------------")
+            
             with self._lock:
                 if not self.is_fitted:
                     raise KmeansNotFittedError("KMeans model is not fitted. Send CLUSTER_FIT first.")
 
-                feature_values = [v for _, v in sorted(data.data.model_dump().items()) if v is not None]
+                raw = data.model_dump() if hasattr(data, "model_dump") else dict(data)
+                feature_values = [v for _, v in sorted(raw.items()) if v is not None]
                 features = np.array([feature_values])
-
-                logger.debug("features: %s", features)
 
                 features_scaled = self.scaler.transform(features)
 
@@ -68,13 +67,8 @@ class ClusteringService:
                     #members=self.get_members(),
                 )
 
-                return Response(
-                    id=data.id,
-                    message="clustering data successfully",
-                    data=data.data,
-                    cluster=data_cluster,
-                )
-
+                return data_cluster
+            
     # Fit KMeans model with historical stats
     def fit(self, historical_stats: list[dict]):
         with tracer.start_as_current_span("use_case.kmeans_clustering"):
