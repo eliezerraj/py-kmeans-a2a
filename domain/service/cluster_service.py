@@ -26,6 +26,7 @@ class ClusterService:
     # Initialize KMeans model with specified cluster size
     def __init__(self, cluster_size: int):
         self._lock = threading.Lock()
+        self.cluster_size = cluster_size
         self.scaler = StandardScaler()
         self.kmeans = KMeans(
             n_clusters=cluster_size,
@@ -36,6 +37,8 @@ class ClusterService:
         )
         self.is_fitted = False
         self.historical_stats = None
+        self.label_map = {}
+        self.feature_keys: list[str] = []
 
     # Cluster incoming data and return cluster assignment.
     def cluster_data(self, data) -> Response:
@@ -51,7 +54,7 @@ class ClusterService:
                     raise KmeansNotFittedError("KMeans model is not fitted. Send CLUSTER_FIT first.")
 
                 raw = data.model_dump() if hasattr(data, "model_dump") else dict(data)
-                feature_values = [v for _, v in sorted(raw.items()) if v is not None]
+                feature_values = [raw[k] for k in self.feature_keys if raw.get(k) is not None]
                 features = np.array([feature_values])
 
                 features_scaled = self.scaler.transform(features)
@@ -64,7 +67,7 @@ class ClusterService:
                     id=str(result_kmeans),
                     model="kmeans",
                     centroid=self.kmeans.cluster_centers_[result_kmeans].tolist(),
-                    #members=self.get_members(),
+                    members=self.get_members(),
                 )
 
                 return data_cluster
@@ -72,12 +75,14 @@ class ClusterService:
     # Fit KMeans model with historical stats
     def fit(self, historical_stats: list[dict]):
         with tracer.start_as_current_span("use_case.kmeans_clustering"):
-            logger.info("func.fit()") 
+            logger.info("func.fit()")
 
-            logger.debug("historical_stats: %s", historical_stats)
+            if not historical_stats:
+                raise KmeansError("historical_stats is empty — cannot fit model.")
 
             with self._lock:
                 feature_keys = sorted(k for k in historical_stats[0].keys() if k.startswith("feature_"))
+                self.feature_keys = feature_keys
                 X = np.array([[s[k] for k in feature_keys] for s in historical_stats])
 
                 X_scaled = self.scaler.fit_transform(X)
@@ -87,20 +92,55 @@ class ClusterService:
                 for idx, label in enumerate(y_means):
                     historical_stats[idx]["cluster"] = int(label)
 
-                logger.debug("historical_stats_with_clusters: %s", historical_stats)
-
                 self.is_fitted = True
                 self.historical_stats = historical_stats
 
-                self.save_cluster_assets(
-                    model=self.kmeans,
-                    scaler=self.scaler,
-                    label_map=self.get_members(),
-                    features_used=feature_keys,
-                )
-                
+                #self.save_cluster_assets(
+                ##    model=self.kmeans,
+                #    scaler=self.scaler,
+                #    label_map=self.get_members(),
+                #    features_used=feature_keys,
+                #)
+                    
+                self.label_map = self.get_risk_score_label_map(self.kmeans)
                 return historical_stats
 
+    def get_risk_score_label_map(self, kmeans_model):
+        centroids = kmeans_model.cluster_centers_
+        
+        print("------------------centroids------------------")
+        print(centroids)
+        print("------------------------------------")
+        
+        risk_scores = []
+
+        for center in centroids:
+            lt, inv, slope = abs(center[0]), abs(center[1]), abs(center[2])
+            
+            print(f'lt={lt}, inv={inv}, slope={slope}')
+            
+            # Adding a small constant to inv to avoid division by zero
+            score = (slope * lt) / (inv + 0.0001)
+  
+            print(f'score={score}')
+            
+            risk_scores.append(score)
+
+        sorted_indices = np.argsort(risk_scores)
+        print(f'sorted_indices={sorted_indices}')
+
+        risk_labels = ["Steady Runout", "Warning Runout", "Critical Runout"]
+        label_map = {
+            risk_labels[i] if i < len(risk_labels) else f"Risk Level {i}": int(sorted_indices[i])
+            for i in range(len(sorted_indices))
+        }
+
+        print("------------------label_map------------------")
+        print(label_map)
+        print("------------------------------------")
+
+        return label_map
+        
     # Return all members of each cluster
     def get_members(self) -> dict:
         with tracer.start_as_current_span("service.get_members"):

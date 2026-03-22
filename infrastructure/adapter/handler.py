@@ -23,7 +23,7 @@ cluster_service = ClusterService(cluster_size=CLUSTER_SIZE)
 
 try:
     logger.info("loading cluster assets at startup...") 
-    cluster_service.load_cluster_assets("v1")
+    #cluster_service.load_cluster_assets("v1")
 except KmeansError as exc:
     logger.warning("Cluster assets unavailable at startup: %s", exc)
 
