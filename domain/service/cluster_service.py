@@ -24,7 +24,7 @@ ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets"
 class ClusterService:
 
     # Initialize KMeans model with specified cluster size
-    def __init__(self, cluster_size: int):
+    def __init__(self, cluster_size: int, model_name: str = "kmeans_model", model_version: str = "v1"):
         self._lock = threading.Lock()
         self.cluster_size = cluster_size
         self.scaler = StandardScaler()
@@ -35,6 +35,8 @@ class ClusterService:
             init='k-means++',
             n_init=10
         )
+        self.model_name = model_name
+        self.model_version = model_version
         self.is_fitted = False
         self.historical_stats = None
         self.label_map = {}
@@ -70,7 +72,10 @@ class ClusterService:
                     members=self.get_members(),
                 )
 
-                return data_cluster
+                return {
+                    "cluster": data_cluster,
+                    "label_map": next((k for k, v in self.label_map.items() if v == result_kmeans), f"Cluster {result_kmeans}"),
+                }
             
     # Fit KMeans model with historical stats
     def fit(self, historical_stats: list[dict]):
@@ -95,32 +100,38 @@ class ClusterService:
                 self.is_fitted = True
                 self.historical_stats = historical_stats
 
-                #self.save_cluster_assets(
-                ##    model=self.kmeans,
-                #    scaler=self.scaler,
-                #    label_map=self.get_members(),
-                #    features_used=feature_keys,
-                #)
+                self.save_cluster_assets(
+                    model=self.kmeans,
+                    scaler=self.scaler,
+                    label_map=self.get_members(),
+                    features_used=feature_keys,
+                    model_name=self.model_name,
+                    version=self.model_version,)
                     
                 self.label_map = self.get_risk_score_label_map(self.kmeans)
-                return historical_stats
+                
+                return {
+                    'label_map': self.label_map,
+                    'cluster_fit_data': historical_stats
+                }
 
+    # Calculate risk scores for each cluster based on centroids and create a label map
     def get_risk_score_label_map(self, kmeans_model):
         centroids = kmeans_model.cluster_centers_
         
-        print("------------------centroids------------------")
+        print("------------------centroids---------")
         print(centroids)
         print("------------------------------------")
         
         risk_scores = []
 
         for center in centroids:
-            lt, inv, slope = abs(center[0]), abs(center[1]), abs(center[2])
+            lead_time, inv, slope = abs(center[0]), abs(center[1]), abs(center[2])
             
-            print(f'lt={lt}, inv={inv}, slope={slope}')
+            print(f'lead_time={lead_time}, inv={inv}, slope={slope}')
             
             # Adding a small constant to inv to avoid division by zero
-            score = (slope * lt) / (inv + 0.0001)
+            score = (slope * lead_time) / (inv + 0.0001)
   
             print(f'score={score}')
             
@@ -129,17 +140,17 @@ class ClusterService:
         sorted_indices = np.argsort(risk_scores)
         print(f'sorted_indices={sorted_indices}')
 
-        risk_labels = ["Steady Runout", "Warning Runout", "Critical Runout"]
-        label_map = {
-            risk_labels[i] if i < len(risk_labels) else f"Risk Level {i}": int(sorted_indices[i])
+        risk_labels = ["Steady_Runout", "Warning_Runout", "Critical_Runout"]
+        self.label_map = {
+            risk_labels[i] if i < len(risk_labels) else f"Risk_Level_{i}": int(sorted_indices[i])
             for i in range(len(sorted_indices))
         }
 
-        print("------------------label_map------------------")
-        print(label_map)
+        print("--------------label_map------------")
+        print(self.label_map)
         print("------------------------------------")
 
-        return label_map
+        return self.label_map
         
     # Return all members of each cluster
     def get_members(self) -> dict:
@@ -161,7 +172,7 @@ class ClusterService:
 
     # Save model and label map to disk for later use
     @staticmethod
-    def save_cluster_assets(model, scaler, label_map, version="v1", features_used=None):
+    def save_cluster_assets(model, scaler, label_map, model_name, version="v1", features_used=None):
         with tracer.start_as_current_span("service.save_cluster_assets") as span:
             logger.info("func.save_cluster_assets()")
             
@@ -174,7 +185,7 @@ class ClusterService:
 
             try:
                 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-                output_path = ASSETS_DIR / f"cluster_agent_{version}.joblib"
+                output_path = ASSETS_DIR / f"{model_name}_{version}.joblib"
                 joblib.dump(assets, output_path)
                 logger.info("cluster assets saved to %s", output_path)
             except Exception as exc:
@@ -184,12 +195,12 @@ class ClusterService:
                 raise KmeansError(f"Failed to persist cluster assets: {exc}") from exc
 
     # Load model and label map from disk
-    def load_cluster_assets(self, version="v1"):
+    def load_cluster_assets(self, model_name, version="v1"):
         with tracer.start_as_current_span("service.load_cluster_assets") as span:
             logger.info("func.load_cluster_assets()")
 
             try:
-                assets_path = ASSETS_DIR / f"cluster_agent_{version}.joblib"
+                assets_path = ASSETS_DIR / f"{model_name}_{version}.joblib"
                 assets = joblib.load(assets_path)
 
                 self.kmeans = assets["model"]
@@ -225,4 +236,4 @@ class ClusterService:
             except FileNotFoundError as exc:
                 span.record_exception(exc)
                 span.set_status(Status(StatusCode.ERROR, str(exc)))
-                raise KmeansError(f"Cluster assets for version '{version}' not found.") from exc
+                raise KmeansError(f"Cluster assets for model '{model_name}' and version '{version}' not found.") from exc

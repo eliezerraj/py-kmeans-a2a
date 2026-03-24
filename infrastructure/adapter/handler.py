@@ -18,12 +18,13 @@ tracer = trace.get_tracer(__name__)
 logger = logging.getLogger(__name__)
 
 # Initialize Clustering Service
-CLUSTER_SIZE = settings.CLUSTER_SIZE
-cluster_service = ClusterService(cluster_size=CLUSTER_SIZE)
+cluster_service = ClusterService(cluster_size=settings.CLUSTER_SIZE,
+                                 model_name=settings.MODEL_NAME,
+                                 model_version=settings.MODEL_VERSION)
 
 try:
     logger.info("loading cluster assets at startup...") 
-    #cluster_service.load_cluster_assets("v1")
+    cluster_service.load_cluster_assets(settings.MODEL_NAME, settings.MODEL_VERSION)
 except KmeansError as exc:
     logger.warning("Cluster assets unavailable at startup: %s", exc)
 
