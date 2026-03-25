@@ -19,8 +19,8 @@ class Data(BaseModel):
 class Cluster(BaseModel):
     id: Optional[str] = None
     model: Optional[str] = None
-    members: Optional[dict] = None
     centroid: Optional[list[float]] = None
+    members: Optional[dict] = None
 
 class MessageResponse(BaseModel):
     message: str

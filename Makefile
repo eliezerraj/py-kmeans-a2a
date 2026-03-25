@@ -4,10 +4,14 @@ export VERSION=0.1
 export ACCOUNT=aws:999999999
 export APP_NAME=py-kmeans-a2a.localhost
 export HOST=127.0.0.1
-export URL_AGENT=http://127.0.0.1:8001
-export PORT=8001
+export URL_AGENT=http://127.0.0.1:8101
+export PORT=8101
 export SESSION_TIMEOUT=3000
 export CLUSTER_SIZE=3
+
+export MODEL_NAME=inventory-cluster
+export MODEL_VERSION=v1
+
 export OTEL_EXPORTER_OTLP_ENDPOINT=http://pi-home-01.architecture.caradhras.io:4318/v1/traces
 export LOG_LEVEL=INFO
 export OTEL_STDOUT_LOG_GROUP=True

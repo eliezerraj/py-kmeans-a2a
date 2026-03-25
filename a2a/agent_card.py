@@ -31,8 +31,22 @@ AGENT_CARD = {
             "name": "Cluster Fit",
             "description": "Trains the K-Means model using a list of numeric feature objects.",
             "tags": ["clustering", "training", "kmeans"],
+            "inputSchema": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "feature_01": { "type": "number" },
+                        "feature_02": { "type": "number" },
+                        "feature_03": { "type": "number" }
+                    },
+                    "required": ["feature_01", "feature_02", "feature_03"]
+                }
+            },
             "examples": [
-                '[{"feature_a": 1.2, "feature_b": 3.4}, {"feature_a": 1.5, "feature_b": 3.1}, {"feature_a": 8.2, "feature_b": 9.4}]'
+                {"feature_01": 1.2, "feature_02": 3.4, "feature_03": 5.6}, 
+                {"feature_01": 1.5, "feature_02": 3.1, "feature_03": 4.8}, 
+                {"feature_01": 8.2, "feature_02": 9.4, "feature_03": 7.1}
             ],
             "inputModes": ["application/json"],
             "outputModes": ["application/json"],
@@ -42,9 +56,19 @@ AGENT_CARD = {
             "name": "Cluster Data",
             "description": "Assigns a feature object to a cluster using the trained K-Means model.",
             "tags": ["clustering", "classification", "kmeans"],
-            "examples": [
-                '{"id": "sample-1", "data": {"feature_a": 2.1, "feature_b": 3.7}}'
-            ],
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "feature_01": { "type": "number" },
+                    "feature_02": { "type": "number" },
+                    "feature_03": { "type": "number" }
+                },
+                "required": ["feature_01", "feature_02", "feature_03"]
+            },
+            "examples":{"feature_01": 2.1, 
+                        "feature_02": 3.7, 
+                        "feature_03": 4.5,
+                    },
             "inputModes": ["application/json"],
             "outputModes": ["application/json"],
         }
