@@ -4,11 +4,10 @@ export VERSION=0.1
 export ACCOUNT=aws:999999999
 export APP_NAME=py-kmeans-a2a.localhost
 export HOST=127.0.0.1
-export URL_AGENT=http://127.0.0.1:8101
 export PORT=8101
+export URL_AGENT=http://$(HOST):$(PORT)
 export SESSION_TIMEOUT=3000
 export CLUSTER_SIZE=3
-
 export MODEL_NAME=inventory-cluster
 export MODEL_VERSION=v1
 

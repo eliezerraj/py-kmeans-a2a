@@ -1,10 +1,12 @@
 # py-kmeans-a2a
 
-py-kmeans-a2a
+py-kmeans-a2a is a a2a agent to classify 3 features.
 
 ## Features
 
 ### Simple / Robust
+
+Examples of features classification    
 
     [ mean, std, slope ]
 
@@ -22,7 +24,7 @@ Feature	Meaning in TPS
     | Degrading service  | mid  | high | −     |
 
 
-### Rate-Limit / Saturation Focused
+### Saturation Focused
 
     [ mean, std, p95 ]
 
@@ -63,7 +65,6 @@ Feature	Meaning in TPS
     | Unstable      | mid  | high | ±     | negative  |
 
 
-## Diagram
 
 ## create venv
 
@@ -86,12 +87,15 @@ Feature	Meaning in TPS
     export VERSION=0.1
     export ACCOUNT=aws:999999999
     export APP_NAME=py-kmeans-a2a.localhost
-    export HOST=127.0.0.1 
-    export URL_AGENT=http://127.0.0.1:8001 
-    export PORT=8001
+    export HOST=127.0.0.1
+    export PORT=8101
+    export URL_AGENT=http://$(HOST):$(PORT)
     export SESSION_TIMEOUT=3000
-    export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces
-    export LOG_LEVEL=DEBUG 
+    export CLUSTER_SIZE=3
+    export MODEL_NAME=inventory-cluster
+    export MODEL_VERSION=v1
+    export OTEL_EXPORTER_OTLP_ENDPOINT=http://pi-home-01.architecture.caradhras.io:4318/v1/traces
+    export LOG_LEVEL=INFO
     export OTEL_STDOUT_LOG_GROUP=True
     export LOG_GROUP=/mnt/c/Eliezer/log/py-kmeans-a2a.log
 

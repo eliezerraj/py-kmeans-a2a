@@ -6,7 +6,7 @@ AGENT_CARD = {
     "description": "Performs K-Means clustering on multi-dimensional features.",
     "version": settings.VERSION,
     "provider": {
-        "organization": "MLOps",
+        "organization": "eliezer-junior",
         "url": settings.URL_AGENT,
     },
     "documentationUrl": f"{settings.URL_AGENT}/info",
@@ -36,9 +36,9 @@ AGENT_CARD = {
                 "items": {
                     "type": "object",
                     "properties": {
-                        "feature_01": { "type": "number" },
-                        "feature_02": { "type": "number" },
-                        "feature_03": { "type": "number" }
+                        "feature_01": { "type": "number" , "description": "First numeric feature for clustering" },
+                        "feature_02": { "type": "number" , "description": "Second numeric feature for clustering" },
+                        "feature_03": { "type": "number" , "description": "Third numeric feature for clustering" }
                     },
                     "required": ["feature_01", "feature_02", "feature_03"]
                 }
@@ -59,9 +59,9 @@ AGENT_CARD = {
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "feature_01": { "type": "number" },
-                    "feature_02": { "type": "number" },
-                    "feature_03": { "type": "number" }
+                    "feature_01": { "type": "number" , "description": "First numeric feature for clustering" },
+                    "feature_02": { "type": "number" , "description": "Second numeric feature for clustering" },
+                    "feature_03": { "type": "number" , "description": "Third numeric feature for clustering" }
                 },
                 "required": ["feature_01", "feature_02", "feature_03"]
             },
